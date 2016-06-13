@@ -36,7 +36,7 @@ class TestBase:
         """
         @require: no quotes needed for input, the quotes will be added during toString
         """
-        self.doc = _doc
+        self.doc = 'Method Doc:' + new_line + _doc
 
     def addDoc(self, _doc):
         self.doc = self.doc + _doc
