@@ -23,11 +23,13 @@ class TestBase:
         docIO = io.StringIO(self.doc)
         ret += (self.indent_level+1) * char_tab + '"""' + new_line
         for line in docIO:
-            ret += (self.indent_level+1) * char_tab + line + new_line
-        ret += (self.indent_level+1) * char_tab + '"""' + new_line
+            ret += (self.indent_level+1) * char_tab + line  # line has \n at the end
+        ret += (new_line if ret[-1] != new_line else '') \
+        + (self.indent_level+1) * char_tab + '"""' + new_line
         bodyIO = io.StringIO(self.body)
         for line in bodyIO:
-            ret += (self.indent_level+1) * char_tab + line + new_line
+            ret += (self.indent_level+1) * char_tab + line  # line has \n at the end
+        ret += new_line
         return ret
 
     def setDoc(self, _doc):
@@ -56,8 +58,12 @@ class TestFunction(TestBase):
         super().__init__(_name, _args_list=args, _indent=1, )
         # define the declaration line
         self.head = 'def ' + ('test_' if utility==False else '')\
-                    + '{}(self, {}, expected_output=None):'.format(self.name,
-        ', '.join(self.arguments))
+                    + '{}'.format(self.name)
+        if len(self.arguments) > 0:
+            self.head += '(self, {}, expected_output=None):'\
+                .format(', '.join(self.arguments))
+        else:
+            self.head += '(self, expected_output=None):'
         self.body = 'pass'
 
 """ <<<<<<<<<<<<<<<<<<< """
@@ -112,8 +118,10 @@ class TestClass(TestBase):
             raise TypeError('TestFunction type required: {}'.format(test_func.__class__))
         self.methods[test_func.name] = test_func
 
-
-
+    def setBody(self, body):
+        raise ValueError('Class has no body to set')
+    def addBody(self, body):
+        raise ValueError('Class has no body to set')
 
 
 """ end of file """
