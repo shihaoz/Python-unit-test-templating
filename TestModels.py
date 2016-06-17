@@ -2,8 +2,8 @@ from sys import platform as os_platform
 import io
 
 
-char_tab = r'\t'
-new_line = (r'\r\n' if os_platform == 'win32' else r'\n')
+char_tab = '\t'
+new_line = ('\r\n' if os_platform == 'win32' else '\n')
 
 class TestBase:
     def __init__(self, _name, _args_list, _indent):

@@ -1,0 +1,16 @@
+simple.py
+#class: P
+P
+#function: __init__
+def __init__(self, argp):
+        self.pstr=argp
+
+
+#class: C
+C
+#function: __init__
+def __init__(self, argp, argc):
+        super(C, self).__init__(argp)
+        self.cstr=argp
+
+

@@ -29,19 +29,29 @@ class Block:
         self.blocks[new_block.name] = new_block
 
     def toString(self):
-        ret = self.name + '\n'
-        for m in self.methods:
-            ret += m + '\n'
-        for blck in self.blocks:
-            ret += blck.toString()
+        ret = self.name + new_line
+        for k,v in self.methods.items():
+            ret += '#function: {}\n{}'.format(k, v) + new_line
+        for k,v  in self.blocks.items():
+            ret += '#class: {}\n{}'.format(k, v.toString())
         return ret + '\n'
 
+
+def blank_line(line):
+    strip_line = str(line)
+    strip_line = strip_line.strip()
+    if len(strip_line) == 0 or strip_line[0] == '#':
+        return True
+    else:
+        return False
 
 def searchScope(next_line, stream, indent_level, this_block):
     this_line = next_line
     while True:
         ''' end of file/end of scope: return this_line '''
-        if this_line == '' or this_line.count(' ') < indent_level:
+        if blank_line(this_line):
+            return ''
+        if this_line.count(' ') < indent_level:
             return this_line
 
         pattern = r'class [\w()]+:'
@@ -53,16 +63,18 @@ def searchScope(next_line, stream, indent_level, this_block):
             # enter the new scope, with the new block and the next_line
             this_line = stream.readline()
             this_line = searchScope(next_line=this_line, stream=stream, indent_level=indent_level+1, this_block=new_block)
+            if blank_line(this_line):
+                this_line = stream.readline()
             continue
         ''' a function: collect the function and save it to this_block '''
         this_line = this_line.strip()
-        pattern = r'def \w+\([\w+, ]\):'
+        pattern = r'def \w+\([\w, ]+\):'  # match the def \w (\w, \w): form
         if re.search(pattern, this_line) is not None: # this is a function definition
                 # stores the lines and name of the function
-                function_body = this_line
+                function_body = this_line + new_line
                 name = this_line[this_line.find(' ')+1: this_line.find('(')]   # get function name
                 this_line = stream.readline()
-                while this_line.count(char_tab) >= (indent_level + 1):
+                while this_line.count(' ') > indent_level:
                     # keep reading in
                     # todo: deal with a nested function
                     function_body += this_line
