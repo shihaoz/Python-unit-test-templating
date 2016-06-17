@@ -1,6 +1,6 @@
-from templateComponent import TestFunction, TestClass
+from TestModels import TestFunction, TestClass
 
-test1 = TestFunction('convert_from_dict', ['user_dict', 'holder'])
+test1 = TestFunction(_name='convert_from_dict', args=['user_dict', 'holder'])
 # print('before doc: ')
 # print(test1.toString())
 

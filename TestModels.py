@@ -2,8 +2,8 @@ from sys import platform as os_platform
 import io
 
 
-char_tab = '\t'
-new_line = ('\r\n' if os_platform == 'win32' else '\n')
+char_tab = r'\t'
+new_line = (r'\r\n' if os_platform == 'win32' else r'\n')
 
 class TestBase:
     def __init__(self, _name, _args_list, _indent):
@@ -55,7 +55,7 @@ class TestFunction(TestBase):
         method/function to be tested
     """
     def __init__(self, _name, args, utility=False):
-        super().__init__(_name, _args_list=args, _indent=1, )
+        super().__init__(_name, _args_list=args, _indent=1)
         # define the declaration line
         self.head = 'def ' + ('test_' if utility==False else '')\
                     + '{}'.format(self.name)
