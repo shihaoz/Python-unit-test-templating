@@ -5,7 +5,7 @@ from TestModels import TestClass, TestFunction, new_line, char_tab
 target_name = 'Sample/try.py'
 
 # function pattern: def XXX(XXX, XX='', XX="", XX=XX.AA ):
-pattern_function = r'def (\w+)\([\w, =\'".]+\):'
+pattern_function = 'def (\w+)\(([\w, =\'".]+)\):'
 
 """
  a two stage process for building Test models:
@@ -113,11 +113,7 @@ def search_scope(next_line, stream, indent_level, this_block):
                 continue
         this_line = stream.readline()    # empty line
 
-
-
-
-
-this_file = Block(name='simple.py')
+this_file = Block(name='complex.py')
 with open('Sample/complex.py', 'r') as fstream:
     file = ''
     for line in fstream:
@@ -129,7 +125,54 @@ with open('Sample/complex.py', 'r') as fstream:
         search_scope(next_line=textStream.readline(), stream=textStream, indent_level=0, this_block=this_file)
 
 
-with open('blocks.txt', 'w') as fstream:
-    fstream.write(this_file.toString())
+def break_function(function_body):
+    """
+    :param function_body: a valid function body (with declaration, doc, and body)
+    :return: (name, args, doc)
+    """
+    lines = function_body.split(new_line)
+    declaration = lines[0]
+    match = re.search(pattern_function, declaration)
+    name = match.group(1)
+    args = [x.strip() for x in match.group(2).split(',')]  # strip whitespace from arguments
 
+    idx, comment = (1, '')
+    if lines[idx].find('"""') == -1:
+        # no doc string
+        return name, args, comment
+    # has doc string
+    idx += 1
+    while lines[idx].find('"""') == -1:
+        # find the enclosing """
+        idx += 1
+    for x in range(1, idx):
+        comment += lines[x]
+    return name, args, comment
+
+
+def build_model(prefix : str, test_class : TestClass, this_block : Block):
+    """
+
+    :param prefix: prefix of name, if a method is within a class, then name == test_class_methodname
+    :param test_model: a TestClass where u add the TestFunction
+    :param this_block: a block
+    :return: the test_model
+    """
+    for name, function in this_block.methods.items():
+        (name, args, doc) = break_function(function_body=function)
+        test_function = TestFunction(_name=prefix+name, args=args).setDoc(_doc=doc)
+        test_class.addMethod(test_function)
+    for name, block in this_block.blocks.items():
+        test_class = build_model(prefix=name + '_', test_class=test_class, this_block=block)
+    return test_class
+
+
+# build functions with {name, args, doc}
+# build class with {name, args, options}
+module = TestClass(_name=this_file.name, args=[], pretty_printer=True, pretty_printer_indent=2)
+write_file = 'hold.py'
+
+module = build_model(prefix='', test_class=module, this_block=this_file)
+with open(write_file, 'w') as wstream:
+    wstream.write(module.toString())
 """ end of file """

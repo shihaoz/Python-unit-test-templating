@@ -9,10 +9,11 @@ class TestBase:
     def __init__(self, _name, _args_list, _indent):
         self.name = _name
         self.arguments = _args_list
-        self.head = '' # declaration line
+        self.head = '' # declaration line, set in derived class
         self.doc = '' # documentation
         self.body = 'pass' # method body
         self.indent_level = _indent
+
     def toString(self):
         """
             return the head + doc + body
@@ -20,12 +21,11 @@ class TestBase:
             inject number of tabs into print
         """
         ret = self.indent_level * char_tab + self.head + new_line
+
         docIO = io.StringIO(self.doc)
-        ret += (self.indent_level+1) * char_tab + '"""' + new_line
         for line in docIO:
             ret += (self.indent_level+1) * char_tab + line  # line has \n at the end
-        ret += (new_line if ret[-1] != new_line else '') \
-        + (self.indent_level+1) * char_tab + '"""' + new_line
+
         bodyIO = io.StringIO(self.body)
         for line in bodyIO:
             ret += (self.indent_level+1) * char_tab + line  # line has \n at the end
@@ -34,18 +34,25 @@ class TestBase:
 
     def setDoc(self, _doc):
         """
-        @require: no quotes needed for input, the quotes will be added during toString
+        @require: the quotes will be added if not
         """
-        self.doc = 'Method Doc:' + new_line + _doc
+        if _doc[-1] != new_line:
+            _doc = _doc + new_line
+        if _doc.find('"""') == -1:
+            self.doc = '"""' + new_line + '{doc}"""'.format(_doc)
+        else:
+            self.doc = _doc
+        return self
 
-    def addDoc(self, _doc):
-        self.doc = self.doc + _doc
 
     def setBody(self, _body):
         self.body = _body
+        return self
+
 
     def addBody(self, _body):
-        self.body = self.body + _body
+        self.body += _body
+        return self
 
 """ >>>>>>>>>>>>>>>>>>> """
 
@@ -65,6 +72,7 @@ class TestFunction(TestBase):
         else:
             self.head += '(self, expected_output=None):'
         self.body = 'pass'
+        return self
 
 """ <<<<<<<<<<<<<<<<<<< """
 
