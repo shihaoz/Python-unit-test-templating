@@ -20,11 +20,10 @@ class Block:
         Each Class within the module is another Block within the Block
         (think of Block as a group of methods that share the same indent level)
     """
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.methods = {}
         self.blocks = {}
-        self.name = name
-
+        self.name = name[0: name.find('.')] if name.find('.') != -1 else name
 
     def addMethod(self, name, method):
         """
@@ -35,7 +34,6 @@ class Block:
         self.methods[name] = method
         return self
 
-
     def addBlock(self, new_block):
         """
         :param new_block: a Block object within this block scope
@@ -43,7 +41,6 @@ class Block:
         """
         self.blocks[new_block.name] = new_block
         return self
-
 
     def toString(self):
         """ convert Block content to a string
@@ -98,7 +95,7 @@ def search_scope(next_line, stream, indent_level, this_block):
         # if this is a function
         pattern = pattern_function
         match = re.search(pattern, this_line)
-        if match is not None: # this is a function definition
+        if match is not None:  # this is a function definition
                 # stores the lines and name of the function
                 name = match.group(1)  # get function name
                 function_body = this_line.strip() + new_line
@@ -145,12 +142,12 @@ def break_function(function_body):
     while lines[idx].find('"""') == -1:
         # find the enclosing """
         idx += 1
-    for x in range(1, idx):
+    for x in range(1, idx+1):  # from the first to the last line of comment
         comment += lines[x]
     return name, args, comment
 
 
-def build_model(prefix : str, test_class : TestClass, this_block : Block):
+def build_model(prefix: str, test_class : TestClass, this_block : Block):
     """
 
     :param prefix: prefix of name, if a method is within a class, then name == test_class_methodname
