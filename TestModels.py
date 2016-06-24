@@ -1,6 +1,5 @@
 from sys import platform as os_platform
-import io
-
+from enum import Enum
 
 char_tab = '\t'
 new_line = ('\n' if os_platform == 'win32' else '\n')
@@ -8,10 +7,20 @@ ddt_method = char_tab + '@data(' + new_line*2 \
              + char_tab + ')' + new_line \
              + char_tab + '@unpack' + new_line
 """
-Rule: doc, body stores in the model will not have newline at the end or beginning.
+Rule:  (newline = newline character, new line = an empty line)
+    1. doc, body stores in the model will not have newline at the end or beginning.
+    2. every model will have one newline at the end
+
 """
+
+
+class TestType(Enum):
+    Class = 1
+    Function = 2
+
 class TestBase:
     def __init__(self, _name, _args_list, _indent):
+        self.type = None
         self.name = _name
         self.arguments = _args_list
         self.head = ''  # declaration line, set in derived class
@@ -25,7 +34,7 @@ class TestBase:
             return the head + doc + body
             will only have one newline at the end.
         """
-        ret = (ddt_method if self.ddt else "")\
+        ret = (ddt_method if self.ddt and (self.type == TestType.Function) else "")\
             + self.indent_level * char_tab + self.head + new_line
         if len(self.doc) > 0:
             lines = self.doc.split(new_line)
@@ -40,6 +49,9 @@ class TestBase:
 
     def set_ddt(self):
         self.ddt = True
+
+    def set_type(self, type: TestType):
+        self.type = type
 
     def setDoc(self, _doc):
         """
@@ -71,6 +83,7 @@ class TestFunction(TestBase):
     """
     def __init__(self, _name : str, args, utility=False):
         super().__init__(_name.lower(), _args_list=args, _indent=1)
+        self.set_type(TestType.Function)
         # define the declaration line
         self.head = 'def ' + ('test_' if utility==False else '')\
                     + '{}'.format(self.name)
@@ -95,6 +108,7 @@ class TestClass(TestBase):
     """
     def __init__(self, _name, args=[], ddt=False, pretty_printer=False, pretty_printer_indent=0):
         super().__init__(_name, _args_list=args, _indent=0)
+        self.set_type(TestType.Class)
         self.methods = {}  # all the test_XXX methods
         self.head = 'class Test{}Methods(unittest.TestCase):'.format(_name)
         self.body = ''
@@ -134,6 +148,8 @@ class TestClass(TestBase):
         if not isinstance(test_func, TestFunction):
             raise TypeError('TestFunction type required: {}'.format(test_func.__class__))
         self.methods[test_func.name] = test_func
+        if self.ddt:
+            test_func.set_ddt()
 
     def setBody(self, body):
         raise ValueError('Class has no body to set')
