@@ -4,8 +4,12 @@ import io
 
 char_tab = '\t'
 new_line = ('\n' if os_platform == 'win32' else '\n')
-
-
+ddt_method = char_tab + '@data(' + new_line*2 \
+             + char_tab + ')' + new_line \
+             + char_tab + '@unpack' + new_line
+"""
+Rule: doc, body stores in the model will not have newline at the end or beginning.
+"""
 class TestBase:
     def __init__(self, _name, _args_list, _indent):
         self.name = _name
@@ -14,25 +18,28 @@ class TestBase:
         self.doc = ''  # documentation
         self.body = 'pass'  # method body
         self.indent_level = _indent
+        self.ddt = False
 
     def toString(self):
         """
             return the head + doc + body
-            depends on indent_level
-            inject number of tabs into print
+            will only have one newline at the end.
         """
-        ret = self.indent_level * char_tab + self.head + new_line
+        ret = (ddt_method if self.ddt else "")\
+            + self.indent_level * char_tab + self.head + new_line
         if len(self.doc) > 0:
-            docIO = io.StringIO(self.doc)
-            for line in docIO:
-                ret += (self.indent_level+1) * char_tab + line  # line has \n at the end
-            ret += new_line
+            lines = self.doc.split(new_line)
+            for line in lines:
+                ret += (self.indent_level+1) * char_tab + line + new_line  # append newline
+
         if len(self.body) > 0:
-            bodyIO = io.StringIO(self.body)
-            for line in bodyIO:
-                ret += (self.indent_level+1) * char_tab + line  # line has \n at the end
-            ret += new_line
+            lines = self.body.split(new_line)
+            for line in lines:
+                ret += (self.indent_level+1) * char_tab + line + new_line  # append newline
         return ret
+
+    def set_ddt(self):
+        self.ddt = True
 
     def setDoc(self, _doc):
         """
@@ -41,26 +48,21 @@ class TestBase:
         if len(_doc) == 0:
             return self
         _doc.strip()
-        _doc += new_line
-        if _doc.find('"""') == -1:
-            self.doc = '"""' + new_line + '{doc}"""'.format(doc=_doc)
-        else:
-            self.doc = _doc
-        _doc.strip()
+        self.doc = '"""' + new_line + _doc + new_line + '"""'
         return self
-
 
     def setBody(self, _body):
-        _body.strip()
         self.body = _body
+        self.body.strip()
         return self
-
 
     def addBody(self, _body):
         self.body += _body
+        self.body.strip()
         return self
 
 """ >>>>>>>>>>>>>>>>>>> """
+
 
 class TestFunction(TestBase):
     """
@@ -82,9 +84,10 @@ class TestFunction(TestBase):
         else:
             self.head += '(self, expected_output=None):'
         self.head.strip()
-        self.body = 'pass'
+        self.setBody(_body='pass')
 
 """ <<<<<<<<<<<<<<<<<<< """
+
 
 class TestClass(TestBase):
     """
@@ -100,32 +103,28 @@ class TestClass(TestBase):
                         'tearDown': TestFunction('tearDown', [], utility=True)
                         }
 
-
         # ddt option
         if ddt:
-            self.ddt_method = (self.indent_level+1) * char_tab + '@data(' + new_line
-            + (self.indent_level+1) * char_tab + ')' + new_line
-            + (self.indent_level+1) * char_tab + '@unpack' + new_line
+            self.set_ddt()
             self.head = '@ddt' + new_line + self.head
 
         # pretty printer option
         if pretty_printer:
             self.utility['startUp'].setDoc(' printer: a pretty_printer ')
             self.utility['startUp'].setBody('self.printer = pprint.PrettyPrinter(indent={}).pprint'
-                .format(pretty_printer_indent))
+                                            .format(pretty_printer_indent))
 
     def toString(self):
         """
             return a string that is the template file of target module.
             returned string will be write to 'ut_XXX.py'
         """
-        ret = super().toString()
+        ret = super().toString() + new_line
         for func in self.utility.values():
             ret += func.toString() + new_line
         for method in self.methods.values():
             ret += method.toString() + new_line
-
-        ret += new_line*2 + '""" end of file """' + new_line*1
+        ret += '""" end of file """' + new_line*1
         return ret
 
     def addMethod(self, test_func):
@@ -138,6 +137,7 @@ class TestClass(TestBase):
 
     def setBody(self, body):
         raise ValueError('Class has no body to set')
+
     def addBody(self, body):
         raise ValueError('Class has no body to set')
 

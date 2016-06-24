@@ -144,6 +144,8 @@ def break_function(function_body):
         idx += 1
     for x in range(1, idx+1):  # from the first to the last line of comment
         comment += lines[x]
+    comment = comment.strip()
+    comment = comment.strip('"')
     return name, args, comment
 
 
@@ -173,3 +175,8 @@ module = build_model(prefix='', test_class=module, this_block=this_file)
 with open(write_file, 'w') as wstream:
     wstream.write(module.toString())
 """ end of file """
+
+
+'''
+    work on importing
+'''
