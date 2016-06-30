@@ -6,7 +6,12 @@ target_name = 'Sample/try.py'
 
 # function pattern: def XXX(XXX, XX='', XX="", XX=XX.AA ):
 pattern_function = 'def (\w+)\(([\w, =\'".]+)\):'
-
+pattern_import = r'\bimport\b'
+imports = ["import unittest",
+           "from unittest.mock import patch, Mock, MagicMock",
+           "from deepdiff import DeepDiff"]
+ddt_import = "from ddt import ddt, data, unpack"
+pprint_import = "import pprint"
 """
  a two stage process for building Test models:
     1. split the file into blocks and scopes
@@ -20,11 +25,10 @@ class Block:
         Each Class within the module is another Block within the Block
         (think of Block as a group of methods that share the same indent level)
     """
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.methods = {}
         self.blocks = {}
-        self.name = name
-
+        self.name = name[0: name.find('.')] if name.find('.') != -1 else name
 
     def addMethod(self, name, method):
         """
@@ -35,7 +39,6 @@ class Block:
         self.methods[name] = method
         return self
 
-
     def addBlock(self, new_block):
         """
         :param new_block: a Block object within this block scope
@@ -43,7 +46,6 @@ class Block:
         """
         self.blocks[new_block.name] = new_block
         return self
-
 
     def toString(self):
         """ convert Block content to a string
@@ -98,7 +100,7 @@ def search_scope(next_line, stream, indent_level, this_block):
         # if this is a function
         pattern = pattern_function
         match = re.search(pattern, this_line)
-        if match is not None: # this is a function definition
+        if match is not None:  # this is a function definition
                 # stores the lines and name of the function
                 name = match.group(1)  # get function name
                 function_body = this_line.strip() + new_line
@@ -113,14 +115,19 @@ def search_scope(next_line, stream, indent_level, this_block):
                 continue
         this_line = stream.readline()    # empty line
 
+
 this_file = Block(name='complex.py')
+
 with open('Sample/complex.py', 'r') as fstream:
     file = ''
+    import_end = False
     for line in fstream:
         if not blank_line(line):
-            file += line
-    with open('complex_strip.txt', 'w') as wstream:
-        wstream.write(file)
+            if not import_end and re.search(pattern_import, line):
+                imports.append(line.strip())
+            else:
+                import_end = True
+                file += line
     with io.StringIO(file) as textStream:
         search_scope(next_line=textStream.readline(), stream=textStream, indent_level=0, this_block=this_file)
 
@@ -145,12 +152,14 @@ def break_function(function_body):
     while lines[idx].find('"""') == -1:
         # find the enclosing """
         idx += 1
-    for x in range(1, idx):
+    for x in range(1, idx+1):  # from the first to the last line of comment
         comment += lines[x]
+    comment = comment.strip()
+    comment = comment.strip('"')
     return name, args, comment
 
 
-def build_model(prefix : str, test_class : TestClass, this_block : Block):
+def build_model(prefix: str, test_class : TestClass, this_block : Block):
     """
 
     :param prefix: prefix of name, if a method is within a class, then name == test_class_methodname
@@ -169,10 +178,25 @@ def build_model(prefix : str, test_class : TestClass, this_block : Block):
 
 # build functions with {name, args, doc}
 # build class with {name, args, options}
-module = TestClass(_name=this_file.name, args=[], pretty_printer=True, pretty_printer_indent=2)
+pretty_printer = True
+ddt = True
+module = TestClass(_name=this_file.name, args=[], ddt=ddt, pretty_printer=pretty_printer, pretty_printer_indent=2)
+if ddt:
+    imports.append(ddt_import)
+if pretty_printer:
+    imports.append(pprint_import)
+
 write_file = 'hold.py'
 
 module = build_model(prefix='', test_class=module, this_block=this_file)
 with open(write_file, 'w') as wstream:
+    for line in imports:
+        wstream.write(line + new_line)
+    wstream.write(new_line)
     wstream.write(module.toString())
 """ end of file """
+
+
+'''
+    work on importing files.
+'''
